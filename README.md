@@ -1,0 +1,1 @@
+A test case regarding receptive fields of GAN.
