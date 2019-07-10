@@ -1,3 +1,5 @@
 checkpoint
 *.data*
 *.index
+*.png
+*.gif
