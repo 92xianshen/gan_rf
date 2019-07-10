@@ -4,7 +4,7 @@
 
 ## 摘要
 
-- 主要探究一下RF对于GAN生成能力的影响
+- 主要探究一下rf对于GAN生成能力的影响
 - 计划使用的数据集包括MNIST，CelebA和ImageNet
 - 主要分为Image级别和Instance级别
 - 参考文章包括Markovian Discriminator（PatchGAN）、DCGAN、WGAN-GP和BigBiGAN等
@@ -13,45 +13,50 @@
 
 ## 方法
 
+- rf只有conv层和pool层才计算
 - 记首层$i = 1$
 - $(i + 1)^{th}$ feature map大小的计算
 
 $$
-w_{fm}^{(i + 1)} = \frac{w^{(i)} + 2 \times p^{(i + 1)} - k_{w}^{(i + 1)}}{s^{(i + 1)}} + 1 \\
-h_{fm}^{(i + 1)} = \frac{h^{(i)} + 2 \times p^{(i + 1)} - k_{h}^{(i + 1)}}{s^{(i + 1)}} + 1
+w_{FM}^{(i + 1)} = \frac{w^{(i)} + 2 \times p^{(i + 1)} - k_{w}^{(i + 1)}}{s^{(i + 1)}} + 1 \\
+h_{FM}^{(i + 1)} = \frac{h^{(i)} + 2 \times p^{(i + 1)} - k_{h}^{(i + 1)}}{s^{(i + 1)}} + 1
 $$
 
 - 经过$i^{th}$卷积层后，receptive field大小的计算
     - $i = 1$时，rf大小即为第一层卷积层kernel的大小
         $$
-        w_{rf}^{(1)} = k_{w}^{(1)} \\
-        h_{rf}^{(1)} = k_{h}^{(1)}
+        w_{RF}^{(1)} = k_{w}^{(1)} \\
+        h_{RF}^{(1)} = k_{h}^{(1)}
         $$
     - $i \geq 2$时，倒推至$j = 1$
         $$
-        w_{rf}^{(j)} = \left\{
+        w_{RF}^{(j)} = \left\{
         \begin{aligned}
             &1, &j = i + 1 \\
-            &(w_{rf}^{(j + 1)} - 1) \times s^{(j)} + k_{w}^{(j)}, &j = i, i - 1, \dots, 1 
+            &(w_{RF}^{(j + 1)} - 1) \times s^{(j)} + k_{w}^{(j)}, &j = i, i - 1, \dots, 1 
         \end{aligned}    
         \right. \\
-        h_{rf}^{(j)} = \left\{
+        h_{RF}^{(j)} = \left\{
         \begin{aligned}
             &1, &j = i + 1 \\
-            &(h_{rf}^{(j + 1)} - 1) \times s^{(j)} + k_{h}^{(j)}, &j = i, i - 1, \dots, 1 
+            &(h_{RF}^{(j + 1)} - 1) \times s^{(j)} + k_{h}^{(j)}, &j = i, i - 1, \dots, 1 
         \end{aligned}    
         \right.
         $$
 
 ## 探究内容
 
-- 相同层数情况下，rf大小对于gan生成能力的影响
-- rf大小等效的情况下，层数对于gan生成能力的影响
+- rf大小影响
+  - rf = 3, 5, 7等对于gan生成能力的影响
+  - rf等效3, 5, 7等对于gan生成能力的影响
+- 控制变量
+  - 相同层数情况下，rf大小对于gan生成能力的影响
+  - rf大小等效的情况下，层数对于gan生成能力的影响
 
 ## MNIST
 
 ### 模型generator
-- feature maps: $7 \times 7 \times 256 \rightarrow 7 \times 7 \times 128 \rightarrow 14 \times 14 \times 64 \rightarrow 28 \times 28 \times 1$
+- fms: $7 \times 7 \times 256 \rightarrow 7 \times 7 \times 128 \rightarrow 14 \times 14 \times 64 \rightarrow 28 \times 28 \times 1$
 - 代码
 
 ```
@@ -101,7 +106,10 @@ class Generator(keras.Model):
 
 ### 初始化discriminator 
 
-- feature maps: $28 \times 28 \times 1 \rightarrow 14 \times 14 \times 64 \rightarrow 7 \times 7 \times 128 \rightarrow 6272 \rightarrow 1$
+- fms: $28 \times 28 \times 1 \rightarrow 14 \times 14 \times 64 \rightarrow 7 \times 7 \times 128 \rightarrow 6272 \rightarrow 1$
+- rf计算
+  - conv2：$(1 - 1) \times 2 + 5 = 5$
+  - conv1: $(5 - 1) \times 2 + 5 = 13$
 - 代码
 
 ```
@@ -136,3 +144,54 @@ class Discriminator(keras.Model):
 
         return x
 ```
+
+### 开始实验
+
+1. onelayer_multi_rfs
+   - 一层conv
+   - 在`onelayer_multi_rfs/`下
+   - 代码
+
+    ```
+    class Discriminator(keras.Model):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # kernel size
+        self.conv1 = keras.layers.Conv2D(64, (1, 1), strides=(
+            1, 1), padding='same', input_shape=[28, 28, 1])
+        self.lrelu1 = keras.layers.LeakyReLU()
+
+        self.flat3 = keras.layers.Flatten()
+        self.dense3 = keras.layers.Dense(1)
+
+    @tf.function
+    def call(self, x, training=False):
+        x = self.conv1(x)
+        x = self.lrelu1(x)
+
+        x = self.flat3(x)
+        x = self.dense3(x)
+
+        return x
+    ```
+   - 结果
+        
+        | rf size | epochs | noise_dim | time | result | appendix |
+        |:--------|:-------|:----------|:-----|:-------|:---------|
+        |1x1      |50      |100        |<7s   |no      |no number |
+        |3x3      |50      |100        |<7s   |yes     |not clear |
+        |5x5      |50      |100        |<7s   |yes     |recognizable |
+        |7x7      |50      |100        |<7s   |yes     |better    |
+        |9x9      |50      |100        |~7s   |yes     |better    |
+        |11x11    |50      |100        |>7s   |yes     |better    |
+        |13x13    |50      |100        |7.5s  |yes     |equivalent to 13 of 2 layers |
+        |28x28    |50      |100        |9.5s  |yes     |          |
+
+   - 从视觉角度上来看，感觉除了1x1以外，其余都能够成功生成图像
+   - time consumption上增长比较缓慢
+   - 结论：只有一层时，rf大小不影响生成 
+
+2. twolayers_multi_rfs
+   - 二层conv，计算等效rf
+   - 在`twolayers_multi_rfs/`下
+   - 
