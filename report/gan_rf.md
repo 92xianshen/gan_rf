@@ -11,9 +11,48 @@
 - 实验报告要记录使用的网络模型、超参数和最终结果
 - 项目代号gan_rf
 
+## 方法
+
+- 记首层$i = 1$
+- $(i + 1)^{th}$ feature map大小的计算
+
+$$
+w_{fm}^{(i + 1)} = \frac{w^{(i)} + 2 \times p^{(i + 1)} - k_{w}^{(i + 1)}}{s^{(i + 1)}} + 1 \\
+h_{fm}^{(i + 1)} = \frac{h^{(i)} + 2 \times p^{(i + 1)} - k_{h}^{(i + 1)}}{s^{(i + 1)}} + 1
+$$
+
+- 经过$i^{th}$卷积层后，receptive field大小的计算
+    - $i = 1$时，rf大小即为第一层卷积层kernel的大小
+        $$
+        w_{rf}^{(1)} = k_{w}^{(1)} \\
+        h_{rf}^{(1)} = k_{h}^{(1)}
+        $$
+    - $i \geq 2$时，倒推至$j = 1$
+        $$
+        w_{rf}^{(j)} = \left\{
+        \begin{aligned}
+            &1, &j = i + 1 \\
+            &(w_{rf}^{(j + 1)} - 1) \times s^{(j)} + k_{w}^{(j)}, &j = i, i - 1, \dots, 1 
+        \end{aligned}    
+        \right. \\
+        h_{rf}^{(j)} = \left\{
+        \begin{aligned}
+            &1, &j = i + 1 \\
+            &(h_{rf}^{(j + 1)} - 1) \times s^{(j)} + k_{h}^{(j)}, &j = i, i - 1, \dots, 1 
+        \end{aligned}    
+        \right.
+        $$
+
+## 探究内容
+
+- 相同层数情况下，rf大小对于gan生成能力的影响
+- rf大小等效的情况下，层数对于gan生成能力的影响
+
 ## MNIST
 
-### 模型generator - feature maps: $7 \times 7 \times 256 \rightarrow 7 \times 7 \times 128 \rightarrow 14 \times 14 \times 64 \rightarrow 28 \times 28 \times 1$
+### 模型generator
+- feature maps: $7 \times 7 \times 256 \rightarrow 7 \times 7 \times 128 \rightarrow 14 \times 14 \times 64 \rightarrow 28 \times 28 \times 1$
+- 代码
 
 ```
 class Generator(keras.Model):
@@ -60,7 +99,10 @@ class Generator(keras.Model):
         return x
 ```
 
-### 初始化discriminator - feature maps: $28 \times 28 \times 1 \rightarrow 14 \times 14 \times 64 \rightarrow 7 \times 7 \times 128 \rightarrow 6272 \rightarrow 1$
+### 初始化discriminator 
+
+- feature maps: $28 \times 28 \times 1 \rightarrow 14 \times 14 \times 64 \rightarrow 7 \times 7 \times 128 \rightarrow 6272 \rightarrow 1$
+- 代码
 
 ```
 class Discriminator(keras.Model):
