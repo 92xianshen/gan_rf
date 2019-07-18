@@ -46,6 +46,10 @@ $$
 
 ## 探究内容
 
+- 影响rf大小的因素
+  - kernel size
+  - stride
+  - number of layers
 - rf大小影响
   - rf = 3, 5, 7等对于gan生成能力的影响
   - rf等效3, 5, 7等对于gan生成能力的影响
@@ -176,16 +180,16 @@ class Discriminator(keras.Model):
     ```
    - 结果
         
-        | rf size | epochs | noise_dim | time | result | appendix |
-        |:--------|:-------|:----------|:-----|:-------|:---------|
-        |1x1      |50      |100        |<7s   |no      |no number |
-        |3x3      |50      |100        |<7s   |yes     |not clear |
+        | rf size | epochs | noise_dim | time | result |  remarks  |
+        |:--------|:-------|:----------|:-----|:-------|:----------|
+        |1x1      |50      |100        |<7s   |no      |no number  |
+        |3x3      |50      |100        |<7s   |yes     |not clear  |
         |5x5      |50      |100        |<7s   |yes     |recognizable |
-        |7x7      |50      |100        |<7s   |yes     |better    |
-        |9x9      |50      |100        |~7s   |yes     |better    |
-        |11x11    |50      |100        |>7s   |yes     |better    |
+        |7x7      |50      |100        |<7s   |yes     |better     |
+        |9x9      |50      |100        |~7s   |yes     |better     |
+        |11x11    |50      |100        |>7s   |yes     |better     |
         |13x13    |50      |100        |7.5s  |yes     |equivalent to 13 of 2 layers |
-        |28x28    |50      |100        |9.5s  |yes     |          |
+        |28x28    |50      |100        |9.5s  |yes     |           |
 
    - 从视觉角度上来看，感觉除了1x1以外，其余都能够成功生成图像
    - time consumption上增长比较缓慢
@@ -194,12 +198,32 @@ class Discriminator(keras.Model):
 1. noconv_multi_rfs
    - 没有conv，测试fc层对生成的影响
    - 结果
-        | rf size | epochs | noise_dim | time | result | appendix |
-        |:--------|:-------|:----------|:-----|:-------|:---------|
-        |0x0      |50      |100        |4s    |no      |no number |
-        |0x0      |100     |100        |4s    |      | |
+        | rf size | epochs | noise_dim | time | result |  remarks  |
+        |:--------|:-------|:----------|:-----|:-------|:----------|
+        |0x0      |50      |100        |4s    |no      |no number generated |
+        |0x0      |100     |100        |4s    |no      |no number generated |
 
 2. twoconvs_multi_rfs
    - 二层conv，计算等效rf
    - 在`twolayers_multi_rfs/`下
-   - 
+   - 结果
+        | rf size | epochs | noise_dim | time | result |  remarks  |
+        |:--------|:-------|:----------|:-----|:-------|:----------|
+        |1x1      |50      |100        |~10s  |no      |no number  |
+        |5x5      |50      |100        |~14s  |yes     |clear      |
+        |9x9      |50      |100        |~15s  |yes     |clear      |
+        |13x13    |50      |100        |~26s  |yes     |clear      |
+        |17x17    |50      |100        |~27s  |yes     |clear      |
+   
+   - 从视觉角度上来看，除了1x1以外，其余都能够成功生成图像
+   - time consumption上出现阶跃
+   - 结论：有2层时，rf大小不影响生成
+  
+3. threeconvs_multi_rfs
+   - 三层conv，计算等效rf
+   - 在`threeconvs_multi_rfs/`下
+   - 结果
+        | rf size | epochs | noise_dim | time | result |  remarks  |
+        |:--------|:-------|:----------|:-----|:-------|:----------|
+        |1x1      |50      |100        |~10s  |no      |no number  |
+   
