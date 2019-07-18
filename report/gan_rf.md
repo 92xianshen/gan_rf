@@ -147,9 +147,9 @@ class Discriminator(keras.Model):
 
 ### 开始实验
 
-1. onelayer_multi_rfs
+1. oneconv_multi_rfs
    - 一层conv
-   - 在`onelayer_multi_rfs/`下
+   - 在`oneconv_multi_rfs/`下
    - 代码
 
     ```
@@ -191,7 +191,15 @@ class Discriminator(keras.Model):
    - time consumption上增长比较缓慢
    - 结论：只有一层时，rf大小不影响生成 
 
-2. twolayers_multi_rfs
+1. noconv_multi_rfs
+   - 没有conv，测试fc层对生成的影响
+   - 结果
+        | rf size | epochs | noise_dim | time | result | appendix |
+        |:--------|:-------|:----------|:-----|:-------|:---------|
+        |0x0      |50      |100        |4s    |no      |no number |
+        |0x0      |100     |100        |4s    |      | |
+
+2. twoconvs_multi_rfs
    - 二层conv，计算等效rf
    - 在`twolayers_multi_rfs/`下
    - 
